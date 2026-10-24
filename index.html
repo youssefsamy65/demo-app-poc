@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo App - CI/CD POC</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0; --muted:#94a3b8; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text);
+           min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .card { background:var(--card); border-radius:12px; padding:32px; width:100%; max-width:380px;
+            box-shadow:0 10px 40px rgba(0,0,0,.4); }
+    h1 { margin:0 0 4px; font-size:1.4rem; }
+    .tag { display:inline-block; background:#334155; color:var(--accent); font-size:.7rem;
+           padding:2px 8px; border-radius:999px; letter-spacing:.05em; margin-bottom:16px; }
+    .hint { background:#0b1220; border:1px dashed #334155; border-radius:8px; padding:10px 12px;
+            font-size:.8rem; color:var(--muted); margin-bottom:20px; }
+    label { display:block; font-size:.8rem; color:var(--muted); margin:12px 0 4px; }
+    input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #334155;
+            background:#0b1220; color:var(--text); font-size:.95rem; }
+    button { width:100%; margin-top:20px; padding:11px; border:0; border-radius:8px; cursor:pointer;
+             background:var(--accent); color:#06283d; font-weight:600; font-size:.95rem; }
+    #message { margin-top:14px; font-size:.85rem; min-height:1.2em; }
+    .ok { color:#4ade80; } .err { color:#f87171; }
+    #dashboard { display:none; text-align:center; }
+    #dashboard.show { display:block; }
+    #loginView.hide { display:none; }
+    .logout { background:transparent; color:var(--muted); border:1px solid #334155; margin-top:24px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div id="loginView">
+      <span class="tag">DEMO / CI-CD POC</span>
+      <h1>Sign in</h1>
+      <div class="hint">Sample app for a CI/CD demo. Use the demo credentials:
+        <strong>demo</strong> / <strong>demo123</strong></div>
+      <form id="loginForm" onsubmit="return handleLogin(event)">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="off" />
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="off" />
+        <button id="loginBtn" type="submit">Log in</button>
+      </form>
+      <div id="message" role="status" aria-live="polite"></div>
+    </div>
+
+    <div id="dashboard">
+      <span class="tag">DEMO / CI-CD POC</span>
+      <h1 id="welcome">Welcome</h1>
+      <p style="color:var(--muted);font-size:.9rem">You reached the secure area.</p>
+      <button id="logoutBtn" class="logout" onclick="handleLogout()">Log out</button>
+    </div>
+  </main>
+
+  <script>
+    // Hardcoded demo credentials - this is a throwaway POC app, nothing real.
+    var DEMO_USER = "demo", DEMO_PASS = "demo123";
+
+    function handleLogin(e) {
+      e.preventDefault();
+      var u = document.getElementById("username").value.trim();
+      var p = document.getElementById("password").value;
+      var msg = document.getElementById("message");
+      if (u === DEMO_USER && p === DEMO_PASS) {
+        document.getElementById("welcome").textContent = "Welcome, " + u + "!";
+        document.getElementById("loginView").classList.add("hide");
+        document.getElementById("dashboard").classList.add("show");
+      } else {
+        msg.className = "err";
+        msg.textContent = "Invalid credentials. Try demo / demo123.";
+      }
+      return false;
+    }
+
+    function handleLogout() {
+      document.getElementById("dashboard").classList.remove("show");
+      document.getElementById("loginView").classList.remove("hide");
+      document.getElementById("loginForm").reset();
+      var msg = document.getElementById("message");
+      msg.className = "ok";
+      msg.textContent = "You logged out.";
+    }
+  </script>
+</body>
+</html>

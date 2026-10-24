@@ -1,0 +1,73 @@
+# BUILD pipeline for the demo app.
+#
+#   Commit -> Build/validate -> Deploy to Pages -> trigger the TEST pipeline
+#
+# A push to main runs this. When the build+deploy succeed, the last job sends a
+# repository_dispatch event to the Playwright test repo, so the end-to-end tests
+# run against the freshly deployed site. That is the "code change in the app repo
+# makes both the build and the test pipeline run" flow for the CI/CD slide.
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build / validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Stand-in for a real build/lint step: fail the pipeline if index.html is
+      # not well-formed HTML, so a broken commit never reaches deploy or tests.
+      - name: Validate HTML
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq tidy
+          tidy -q -e index.html || (echo "::error::index.html has HTML errors" && exit 1)
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  trigger-tests:
+    name: Trigger test pipeline
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      # Sends a repository_dispatch event to the Playwright POC repo.
+      # Requires a repo secret TEST_REPO_TOKEN (a PAT with "repo" scope on the
+      # test repo) and a variable TEST_REPO (owner/name). See README for setup.
+      - name: Notify test repo
+        if: ${{ vars.TEST_REPO != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.TEST_REPO_TOKEN }}
+        run: |
+          gh api "repos/${{ vars.TEST_REPO }}/dispatches" \
+            -f event_type=app-updated \
+            -F "client_payload[sha]=${{ github.sha }}" \
+            -F "client_payload[app_url]=${{ needs.deploy.outputs.page_url }}"
